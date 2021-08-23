@@ -25,11 +25,13 @@
 package io.airbyte.integrations.source.relationaldb;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.airbyte.commons.functional.CheckedConsumer;
 import io.airbyte.commons.json.Jsons;
 import io.airbyte.commons.lang.Exceptions;
+import io.airbyte.commons.resources.MoreResources;
 import io.airbyte.commons.type.Types;
 import io.airbyte.commons.util.AutoCloseableIterator;
 import io.airbyte.commons.util.AutoCloseableIterators;
@@ -53,6 +55,7 @@ import io.airbyte.protocol.models.ConfiguredAirbyteStream;
 import io.airbyte.protocol.models.Field;
 import io.airbyte.protocol.models.JsonSchemaPrimitive;
 import io.airbyte.protocol.models.SyncMode;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,11 +147,11 @@ public abstract class AbstractRelationalDbSource<DataType, Database extends SqlD
 
   @Override
   public AirbyteConnectionStatus check(JsonNode config) {
-    try (final Database database = createDatabaseInternal(config)) {
+    try {
+      final Database database = createDatabaseInternal(config);
       for (CheckedConsumer<Database, Exception> checkOperation : getCheckOperations(config)) {
         checkOperation.accept(database);
       }
-
       return new AirbyteConnectionStatus().withStatus(Status.SUCCEEDED);
     } catch (Exception e) {
       LOGGER.info("Exception while checking connection: ", e);
@@ -201,6 +204,21 @@ public abstract class AbstractRelationalDbSource<DataType, Database extends SqlD
           Exceptions.toRuntime(database::close);
           LOGGER.info("Closed database connection pool.");
         });
+  }
+
+  /**
+   * Override the default spec.json to insert ssh-tunnel configuration as one of the properties of all
+   * relational database connection specs.
+   *
+   * @param spec
+   * @return
+   * @throws IOException
+   */
+  @Override
+  public JsonNode addToSpec(JsonNode spec) throws IOException {
+    ObjectNode propNode = (ObjectNode) spec.get("connectionSpecification").get("properties");
+    propNode.set("tunnel_method", Jsons.deserialize(MoreResources.readResource("ssh-tunnel-spec.json")));
+    return spec;
   }
 
   public List<AutoCloseableIterator<AirbyteMessage>> getIncrementalIterators(Database database,
