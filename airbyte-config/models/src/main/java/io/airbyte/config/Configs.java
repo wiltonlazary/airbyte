@@ -75,6 +75,8 @@ public interface Configs {
 
   WorkerEnvironment getWorkerEnvironment();
 
+  String getSpecCacheBucket();
+
   WorkspaceRetentionConfig getWorkspaceRetentionConfig();
 
   String getTemporalHost();
