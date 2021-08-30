@@ -46,13 +46,15 @@ public class WebBackendSourceHandler {
 
   private final SourceHandler sourceHandler;
 
+  private final OAuthHandler oAuthHandler;
   private final SchedulerHandler schedulerHandler;
   private final WorkspaceHelper workspaceHelper;
 
-  public WebBackendSourceHandler(final SourceHandler sourceHandler, final SchedulerHandler schedulerHandler, final WorkspaceHelper workspaceHelper) {
+  public WebBackendSourceHandler(final SourceHandler sourceHandler, final SchedulerHandler schedulerHandler, final WorkspaceHelper workspaceHelper, final OAuthHandler oAuthHandler) {
     this.sourceHandler = sourceHandler;
     this.schedulerHandler = schedulerHandler;
     this.workspaceHelper = workspaceHelper;
+    this.oAuthHandler = oAuthHandler;
   }
 
   public SourceRead webBackendRecreateSourceAndCheck(SourceRecreate sourceRecreate)
@@ -86,4 +88,11 @@ public class WebBackendSourceHandler {
     throw new ConnectFailureKnownException("Unable to connect to source");
   }
 
+  public SourceRead webBackendCreateSource(SourceCreate sourceCreate) throws JsonValidationException, ConfigNotFoundException, IOException {
+    sourceCreate.connectionConfiguration(oAuthHandler.injectSourceOAuthParameters(
+        sourceCreate.getSourceDefinitionId(),
+        sourceCreate.getWorkspaceId(),
+        sourceCreate.getConnectionConfiguration()));
+    return sourceHandler.createSource(sourceCreate);
+  }
 }

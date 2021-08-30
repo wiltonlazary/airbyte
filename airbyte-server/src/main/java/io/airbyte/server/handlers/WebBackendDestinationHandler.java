@@ -32,6 +32,8 @@ import io.airbyte.api.model.DestinationCreate;
 import io.airbyte.api.model.DestinationIdRequestBody;
 import io.airbyte.api.model.DestinationRead;
 import io.airbyte.api.model.DestinationRecreate;
+import io.airbyte.api.model.SourceCreate;
+import io.airbyte.api.model.SourceRead;
 import io.airbyte.config.persistence.ConfigNotFoundException;
 import io.airbyte.scheduler.persistence.WorkspaceHelper;
 import io.airbyte.server.errors.ConnectFailureKnownException;
@@ -46,15 +48,18 @@ public class WebBackendDestinationHandler {
 
   private final DestinationHandler destinationHandler;
 
+  private final OAuthHandler oAuthHandler;
   private final SchedulerHandler schedulerHandler;
   private final WorkspaceHelper workspaceHelper;
 
   public WebBackendDestinationHandler(final DestinationHandler destinationHandler,
                                       final SchedulerHandler schedulerHandler,
-                                      final WorkspaceHelper workspaceHelper) {
+                                      final WorkspaceHelper workspaceHelper,
+                                      final OAuthHandler oAuthHandler) {
     this.destinationHandler = destinationHandler;
     this.schedulerHandler = schedulerHandler;
     this.workspaceHelper = workspaceHelper;
+    this.oAuthHandler = oAuthHandler;
   }
 
   public DestinationRead webBackendRecreateDestinationAndCheck(DestinationRecreate destinationRecreate)
@@ -92,4 +97,12 @@ public class WebBackendDestinationHandler {
     throw new ConnectFailureKnownException("Unable to connect to destination");
   }
 
+  public DestinationRead webBackendCreateDestination(DestinationCreate destinationCreate)
+      throws JsonValidationException, ConfigNotFoundException, IOException {
+    destinationCreate.connectionConfiguration(oAuthHandler.injectDestinationOAuthParameters(
+        destinationCreate.getDestinationDefinitionId(),
+        destinationCreate.getWorkspaceId(),
+        destinationCreate.getConnectionConfiguration()));
+    return destinationHandler.createDestination(destinationCreate);
+  }
 }
