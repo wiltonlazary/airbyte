@@ -47,10 +47,15 @@ class SlackStream(HttpStream, ABC):
     # own retry counter.
     retry_attempts = 0
     max_retry_attempts = 5
+    # Since there is no limit on retry count for 429 response we should limit
+    # it by time to avoid endless loop.
+    retry_timeout = pendulum.duration(minutes=5)
+    request_started_at = None
 
     @property
     def max_retries(self) -> Union[int, None]:
         self.retry_attempts = 0
+        self.request_started_at = pendulum.now()
         # Return None for unlimited retry attempts. This stream implements its
         # own retry counter based on response type.
         return None
@@ -62,9 +67,9 @@ class SlackStream(HttpStream, ABC):
             Slack has no any limitation / restriction on API usage (except of
             posting message over API when app can be blocked), we should only
             follow the rules and evaluate delay given by "Retry-After" header.
-            Do not give up retry attempts in case of 429 error.
+            Do not give up retry attempts in case of 429 error but exit on timeout.
             """
-            return True
+            return self.request_started_at + self.retry_timeout >= pendulum.now()
         self.retry_attempts += 1
         # In case response is not 429 follow standrad retry logic but implement own retry counter.
         return self.retry_attempts <= self.max_retry_attempts and super().should_retry(response)

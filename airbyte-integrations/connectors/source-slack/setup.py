@@ -25,12 +25,22 @@
 
 from setuptools import find_packages, setup
 
+TEST_REQUIREMENTS = [
+    "pytest~=6.1",
+    "pytest-mock~=3.6.1",
+    "responses~=0.13.3",
+    "freezegun~=1.1.0",
+]
+
 setup(
     name="source_slack",
     description="Source implementation for Slack.",
     author="Airbyte",
     author_email="contact@airbyte.io",
     packages=find_packages(),
-    install_requires=["airbyte-cdk~=0.1.13", "pytest==6.1.2", "slack_sdk==3.4.2", "pendulum>=2,<3"],
+    install_requires=["airbyte-cdk~=0.1.13", "slack_sdk==3.4.2", "pendulum>=2,<3"],
     package_data={"": ["*.json"]},
+    extras_require={
+        "tests": TEST_REQUIREMENTS,
+    },
 )

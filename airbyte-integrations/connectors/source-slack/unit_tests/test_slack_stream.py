@@ -21,9 +21,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+from http import HTTPStatus
+
+import pendulum
 import pytest
 import responses
 from airbyte_cdk.models import SyncMode
+from freezegun import freeze_time
 from requests.exceptions import HTTPError
 from source_slack.source import SlackStream
 
@@ -35,10 +39,16 @@ class MockSlackStream(SlackStream):
     data_field = "dummy_data_field"
 
 
+@pytest.fixture
+def frozen_time():
+    with freeze_time("2012-01-14 12:00:01") as freezer:
+        yield freezer
+
+
 @responses.activate
 def test_slack_stream_backoff_500(mocker):
     mocker.patch("time.sleep", return_value=None)
-    responses.add(responses.GET, "https://slack.com/api/dummmy/path", json={}, status=500)
+    responses.add(responses.GET, "https://slack.com/api/dummmy/path", json={}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
     slack_stream = MockSlackStream()
 
     with pytest.raises(HTTPError):
@@ -47,7 +57,7 @@ def test_slack_stream_backoff_500(mocker):
     responses.reset()
 
     # Send this request one more time to make sure retry attempts has been reseted
-    responses.add(responses.GET, "https://slack.com/api/dummmy/path", json={}, status=500)
+    responses.add(responses.GET, "https://slack.com/api/dummmy/path", json={}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
     with pytest.raises(HTTPError):
         [r for r in slack_stream.read_records(sync_mode=SyncMode.full_refresh)]
     assert len(responses.calls) == slack_stream.max_retry_attempts + 1
@@ -66,7 +76,7 @@ def test_slack_stream_backoff_429(mocker):
             self.current_retries += 1
             if self.current_retries > infinite_number:
                 raise Exception("Infinite number reached")
-            return (429, {"Retry-After": str(retry_slack_response)}, "{}")
+            return (HTTPStatus.TOO_MANY_REQUESTS, {"Retry-After": str(retry_slack_response)}, "{}")
 
     responses.add_callback(responses.GET, "https://slack.com/api/dummmy/path", callback=ResponseCB())
     slack_stream = MockSlackStream()
@@ -77,3 +87,21 @@ def test_slack_stream_backoff_429(mocker):
     sleep_args = [call[0][0] for call in sleep_mock.call_args_list]
     assert all([arg == retry_slack_response + 1 for arg in sleep_args if arg])
     assert len(responses.calls) == infinite_number + 1
+
+
+@responses.activate
+def test_slack_stream_backoff_429_timeout(mocker, frozen_time):
+    mocker.patch("time.sleep", return_value=None)
+    expected_duration = pendulum.duration(minutes=5)
+
+    class ResponseCB:
+        def __call__(self, request):
+            frozen_time.move_to(pendulum.now() + pendulum.duration(minutes=1))
+            return (HTTPStatus.TOO_MANY_REQUESTS, {"Retry-After": "1"}, "{}")
+
+    responses.add_callback(responses.GET, "https://slack.com/api/dummmy/path", callback=ResponseCB())
+    slack_stream = MockSlackStream()
+
+    with pytest.raises(HTTPError):
+        [r for r in slack_stream.read_records(sync_mode=SyncMode.full_refresh)]
+    assert len(responses.calls) == expected_duration.minutes + 1
