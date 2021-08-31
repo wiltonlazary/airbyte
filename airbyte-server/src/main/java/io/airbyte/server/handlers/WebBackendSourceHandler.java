@@ -50,7 +50,10 @@ public class WebBackendSourceHandler {
   private final SchedulerHandler schedulerHandler;
   private final WorkspaceHelper workspaceHelper;
 
-  public WebBackendSourceHandler(final SourceHandler sourceHandler, final SchedulerHandler schedulerHandler, final WorkspaceHelper workspaceHelper, final OAuthHandler oAuthHandler) {
+  public WebBackendSourceHandler(final SourceHandler sourceHandler,
+                                 final SchedulerHandler schedulerHandler,
+                                 final WorkspaceHelper workspaceHelper,
+                                 final OAuthHandler oAuthHandler) {
     this.sourceHandler = sourceHandler;
     this.schedulerHandler = schedulerHandler;
     this.workspaceHelper = workspaceHelper;
@@ -95,4 +98,5 @@ public class WebBackendSourceHandler {
         sourceCreate.getConnectionConfiguration()));
     return sourceHandler.createSource(sourceCreate);
   }
+
 }

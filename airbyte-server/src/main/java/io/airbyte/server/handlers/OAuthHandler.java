@@ -76,7 +76,7 @@ public class OAuthHandler {
         .filter(p -> sourceDefinitionId.equals(p.getSourceDefinitionId()))
         .filter(p -> p.getWorkspaceId() == null || workspaceId.equals(p.getWorkspaceId()))
         .min(Comparator.nullsLast(Comparator.comparing(SourceOAuthParameter::getWorkspaceId))
-                .thenComparing(SourceOAuthParameter::getOauthParameterId))
+            .thenComparing(SourceOAuthParameter::getOauthParameterId))
         .ifPresent(oAuthParameter -> ((ObjectNode) sourceConnectorConfig).set(OAUTH_PROPERTY_NAME, oAuthParameter.getConfiguration()));
     return sourceConnectorConfig;
   }
@@ -91,4 +91,5 @@ public class OAuthHandler {
         .ifPresent(oAuthParameter -> ((ObjectNode) destinationConnectorConfig).set(OAUTH_PROPERTY_NAME, oAuthParameter.getConfiguration()));
     return destinationConnectorConfig;
   }
+
 }

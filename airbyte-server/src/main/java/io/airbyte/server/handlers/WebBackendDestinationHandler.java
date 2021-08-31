@@ -32,8 +32,6 @@ import io.airbyte.api.model.DestinationCreate;
 import io.airbyte.api.model.DestinationIdRequestBody;
 import io.airbyte.api.model.DestinationRead;
 import io.airbyte.api.model.DestinationRecreate;
-import io.airbyte.api.model.SourceCreate;
-import io.airbyte.api.model.SourceRead;
 import io.airbyte.config.persistence.ConfigNotFoundException;
 import io.airbyte.scheduler.persistence.WorkspaceHelper;
 import io.airbyte.server.errors.ConnectFailureKnownException;
@@ -105,4 +103,5 @@ public class WebBackendDestinationHandler {
         destinationCreate.getConnectionConfiguration()));
     return destinationHandler.createDestination(destinationCreate);
   }
+
 }

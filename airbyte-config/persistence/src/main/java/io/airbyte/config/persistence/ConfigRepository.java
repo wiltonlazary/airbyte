@@ -232,7 +232,8 @@ public class ConfigRepository {
   }
 
   public void writeDestinationOAuthParam(final DestinationOAuthParameter destinationOAuthParameter) throws JsonValidationException, IOException {
-    persistence.writeConfig(ConfigSchema.DESTINATION_OAUTH_PARAM, destinationOAuthParameter.getOauthParameterId().toString(), destinationOAuthParameter);
+    persistence.writeConfig(ConfigSchema.DESTINATION_OAUTH_PARAM, destinationOAuthParameter.getOauthParameterId().toString(),
+        destinationOAuthParameter);
   }
 
   public List<DestinationOAuthParameter> listDestinationOAuthParam() throws JsonValidationException, IOException {
